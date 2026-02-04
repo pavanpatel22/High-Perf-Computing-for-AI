@@ -1,0 +1,9 @@
+{
+    "C_Cpp.default.compilerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v*/bin/nvcc.exe",
+    "C_Cpp.default.intelliSenseMode": "windows-msvc-x64",
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.associations": {
+        "*.cu": "cuda",
+        "*.cuh": "cuda"
+    }
+}
