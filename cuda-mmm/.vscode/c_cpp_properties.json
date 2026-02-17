@@ -15,7 +15,7 @@
                 "_UNICODE"
             ],
             "windowsSdkVersion": "10.0.19041.0",
-            "compilerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v*/bin/nvcc.exe",
+            "compilerPath": "\"C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v*/bin/nvcc.exe\"",
             "cStandard": "c17",
             "cppStandard": "c++17",
             "intelliSenseMode": "windows-msvc-x64"

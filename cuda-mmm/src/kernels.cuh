@@ -284,9 +284,12 @@ __global__ void sgemm_vectorized(int M, int N, int K, float alpha,
                                  float beta,
                                  float* __restrict__ C)
 {
-  static_assert(BK == 8, "This vectorized kernel assumes BK=8");
-  static_assert((BN % 4) == 0, "BN must be multiple of 4 for float4 loads");
-  static_assert((N % 4) == 0, "For best results, run with N multiple of 4 (e.g., 4096)");
+static_assert(BK == 8, "This vectorized kernel assumes BK=8");
+static_assert((BN % 4) == 0, "BN must be multiple of 4 for float4 loads");
+// NOTE: N is runtime, so we can't static_assert on it.
+// Vectorized loads still work safely because we guard (gBc + 3) < N.
+// Best performance when N is multiple of 4.
+
 
   constexpr int THREADS_Y = BM / TM;  // 16
   constexpr int THREADS_X = BN / TN;  // 16
