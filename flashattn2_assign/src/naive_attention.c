@@ -2,6 +2,7 @@
 #include <math.h>
 #include <float.h>
 #include <string.h>
+#include <stdlib.h>
 
 static inline const float* ptr_qkv(const float* base, int bh, int N, int D, int n, int d) {
     return base + (size_t)bh * (size_t)N * (size_t)D + (size_t)n * (size_t)D + (size_t)d;
