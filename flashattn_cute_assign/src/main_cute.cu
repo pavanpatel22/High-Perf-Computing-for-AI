@@ -5,6 +5,8 @@
 #include <random>
 #include <cmath>
 #include "flashattn_cuda_cute.h"
+#include <cstring>
+#include <cstdlib>
 
 #define CUDA_CHECK(call) do {                               \
   cudaError_t err = call;                                   \

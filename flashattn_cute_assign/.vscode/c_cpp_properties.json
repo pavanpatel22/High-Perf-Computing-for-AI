@@ -2,19 +2,19 @@
   "version": 4,
   "configurations": [
     {
-      "name": "Win64-CUDA-CuTe",
+      "name": "Win64-CUDA-12.6",
       "intelliSenseMode": "windows-msvc-x64",
       "cppStandard": "c++17",
-      "cStandard": "c11",
       "includePath": [
         "${workspaceFolder}/**",
-        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v13.1/include",
-        "C:/dev/cutlass/include"
+        "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/include"
       ],
       "defines": [
         "_WIN32",
-        "NOMINMAX"
-      ]
+        "NOMINMAX",
+        "__CUDACC__"
+      ],
+      "compilerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.6/bin/nvcc.exe"
     }
   ]
 }

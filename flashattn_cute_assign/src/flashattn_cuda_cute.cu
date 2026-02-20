@@ -61,7 +61,6 @@ __global__ void flashattn_forward_cute_kernel(
   const float scale = rsqrtf((float)D);
   const int Tc = ceil_div(N, Bc);
 
-  // Layout: [BH, N, D] contiguous row-major (D is fastest)
   const size_t bh_stride = (size_t)N * (size_t)D;
   const Tin* Qbh = Q + (size_t)bh * bh_stride;
   const Tin* Kbh = K + (size_t)bh * bh_stride;
@@ -69,12 +68,11 @@ __global__ void flashattn_forward_cute_kernel(
   float* Obh = O + (size_t)bh * bh_stride;
   float* Lbh = L + (size_t)bh * (size_t)N;
 
-  // CuTe GMEM tensors of shape [N, D] row-major: stride(D,1)
   auto gQ = make_tensor(make_gmem_ptr(Qbh), make_shape(N, D), make_stride(D, 1));
   auto gK = make_tensor(make_gmem_ptr(Kbh), make_shape(N, D), make_stride(D, 1));
   auto gV = make_tensor(make_gmem_ptr(Vbh), make_shape(N, D), make_stride(D, 1));
 
-  // Shared memory: store Q tile [Br,D], K tile [Bc,D], V tile [Bc,D] as float
+  // Shared memory: Q[Br,D], K[Bc,D], V[Bc,D] in float
   extern __shared__ unsigned char smem_raw[];
   float* smem = reinterpret_cast<float*>(smem_raw);
 
@@ -86,20 +84,16 @@ __global__ void flashattn_forward_cute_kernel(
   auto sK = make_tensor(make_smem_ptr(smem_K), make_shape(Bc, D), make_stride(D, 1));
   auto sV = make_tensor(make_smem_ptr(smem_V), make_shape(Bc, D), make_stride(D, 1));
 
-  // Q tile view starting at (q0,0): [Br,D]
   auto gQ_tile = local_tile(gQ, make_shape(Br, D), make_coord(q0, 0));
 
-  // Load Q tile into shared
   for (int d = 0; d < D; ++d) {
     sQ(r, d) = active ? to_f32(gQ_tile(r, d)) : 0.0f;
   }
   __syncthreads();
 
-  // Streaming softmax stats for this row (Algorithm 1)
   float m = -INFINITY;
   float l = 0.0f;
 
-  // Use output row as Otilde scratch
   float* out_row = active ? (Obh + (size_t)q_idx * (size_t)D) : nullptr;
   if (active) {
     for (int d = 0; d < D; ++d) out_row[d] = 0.0f;
@@ -110,11 +104,9 @@ __global__ void flashattn_forward_cute_kernel(
     const int k0 = tj * Bc;
     const int kn = min(Bc, N - k0);
 
-    // K/V tile views starting at (k0,0): [Bc,D]
     auto gK_tile = local_tile(gK, make_shape(Bc, D), make_coord(k0, 0));
     auto gV_tile = local_tile(gV, make_shape(Bc, D), make_coord(k0, 0));
 
-    // Cooperative load K,V into shared (only kn rows are valid)
     for (int idx = r; idx < kn * D; idx += Br) {
       int kk = idx / D;
       int d  = idx - kk * D;
@@ -124,7 +116,6 @@ __global__ void flashattn_forward_cute_kernel(
     __syncthreads();
 
     if (active) {
-      // 1) row_max over this K-block
       float row_max = -INFINITY;
       for (int c = 0; c < kn; ++c) {
         const int k_idx = k0 + c;
@@ -138,15 +129,12 @@ __global__ void flashattn_forward_cute_kernel(
         row_max = fmaxf(row_max, s);
       }
 
-      // 2) m_new
       float m_new = fmaxf(m, row_max);
 
-      // 3) rescale old accumulators by alpha
       float alpha = isfinite(m) ? expf(m - m_new) : 0.0f;
       l *= alpha;
       for (int d = 0; d < D; ++d) out_row[d] *= alpha;
 
-      // 4) accumulate this block
       for (int c = 0; c < kn; ++c) {
         const int k_idx = k0 + c;
         float s = -INFINITY;
@@ -163,14 +151,12 @@ __global__ void flashattn_forward_cute_kernel(
         for (int d = 0; d < D; ++d) out_row[d] += p * sV(c, d);
       }
 
-      // 5) update m
       m = m_new;
     }
 
     __syncthreads();
   }
 
-  // finalize
   if (active) {
     float inv_l = 1.0f / l;
     for (int d = 0; d < D; ++d) out_row[d] *= inv_l;
@@ -192,18 +178,49 @@ extern "C" void flashattn_forward_cute(
   dim3 grid(Tr, BH, 1);
   dim3 block(Br, 1, 1);
 
-  // shared: (Br + 2*Bc)*D floats
+  // dynamic shared memory bytes
   size_t shmem = (size_t)(Br + 2 * Bc) * (size_t)D * sizeof(float);
 
+
+  cudaDeviceProp prop{};
+  CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
+  if (shmem > (size_t)prop.sharedMemPerBlockOptin) {
+    fprintf(stderr,
+            "Requested dynamic shared memory %zu bytes exceeds device opt-in limit %d bytes\n",
+            shmem, prop.sharedMemPerBlockOptin);
+    std::exit(1);
+  }
+
   if (dtype == 0) {
+    CUDA_CHECK(cudaFuncSetAttribute(
+        flashattn_forward_cute_kernel<float>,
+        cudaFuncAttributeMaxDynamicSharedMemorySize,
+        (int)shmem));
+
     flashattn_forward_cute_kernel<float><<<grid, block, shmem>>>(
-      (const float*)Q, (const float*)K, (const float*)V, O, L, N, D, Br, Bc, causal);
+        (const float*)Q, (const float*)K, (const float*)V,
+        O, L, N, D, Br, Bc, causal);
+
   } else if (dtype == 1) {
+    CUDA_CHECK(cudaFuncSetAttribute(
+        flashattn_forward_cute_kernel<__half>,
+        cudaFuncAttributeMaxDynamicSharedMemorySize,
+        (int)shmem));
+
     flashattn_forward_cute_kernel<__half><<<grid, block, shmem>>>(
-      (const __half*)Q, (const __half*)K, (const __half*)V, O, L, N, D, Br, Bc, causal);
+        (const __half*)Q, (const __half*)K, (const __half*)V,
+        O, L, N, D, Br, Bc, causal);
+
   } else if (dtype == 2) {
+    CUDA_CHECK(cudaFuncSetAttribute(
+        flashattn_forward_cute_kernel<__nv_bfloat16>,
+        cudaFuncAttributeMaxDynamicSharedMemorySize,
+        (int)shmem));
+
     flashattn_forward_cute_kernel<__nv_bfloat16><<<grid, block, shmem>>>(
-      (const __nv_bfloat16*)Q, (const __nv_bfloat16*)K, (const __nv_bfloat16*)V, O, L, N, D, Br, Bc, causal);
+        (const __nv_bfloat16*)Q, (const __nv_bfloat16*)K, (const __nv_bfloat16*)V,
+        O, L, N, D, Br, Bc, causal);
+
   } else {
     fprintf(stderr, "flashattn_forward_cute: unsupported dtype=%d\n", dtype);
     std::exit(1);
