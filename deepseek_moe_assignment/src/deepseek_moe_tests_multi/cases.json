@@ -1,0 +1,23 @@
+[
+  {
+    "name": "case_01",
+    "seed_weights": 2024,
+    "seed_inputs": 2025,
+    "batch_size": 2,
+    "seq_len": 3
+  },
+  {
+    "name": "case_02",
+    "seed_weights": 123,
+    "seed_inputs": 456,
+    "batch_size": 1,
+    "seq_len": 5
+  },
+  {
+    "name": "case_03",
+    "seed_weights": 999,
+    "seed_inputs": 1001,
+    "batch_size": 3,
+    "seq_len": 2
+  }
+]
