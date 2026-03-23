@@ -1,0 +1,25 @@
+{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/include",
+                "C:/Program Files/NVIDIA/NCCL/include",
+                "C:/Users/devpa/AppData/Local/Programs/Python/Python313/Lib/site-packages/torch/include",
+                "C:/Users/devpa/AppData/Local/Programs/Python/Python313/Lib/site-packages/torch/include/torch/csrc/api/include"
+            ],
+            "defines": [
+                "_DEBUG",
+                "UNICODE",
+                "_UNICODE",
+                "__CUDACC__"
+            ],
+            "compilerPath": "C:/Program Files/NVIDIA GPU Computing Toolkit/CUDA/v12.4/bin/nvcc.exe",
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-msvc-x64"
+        }
+    ],
+    "version": 4
+}

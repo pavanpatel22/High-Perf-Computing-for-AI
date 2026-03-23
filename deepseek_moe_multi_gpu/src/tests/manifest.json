@@ -1,0 +1,37 @@
+[
+  {
+    "name": "case_01",
+    "batch": 2,
+    "seq": 3,
+    "seed_w": 2024,
+    "seed_x": 2025
+  },
+  {
+    "name": "case_02",
+    "batch": 1,
+    "seq": 5,
+    "seed_w": 123,
+    "seed_x": 456
+  },
+  {
+    "name": "case_03",
+    "batch": 3,
+    "seq": 2,
+    "seed_w": 999,
+    "seed_x": 1001
+  },
+  {
+    "name": "case_04",
+    "batch": 4,
+    "seq": 4,
+    "seed_w": 7777,
+    "seed_x": 8888
+  },
+  {
+    "name": "case_05",
+    "batch": 2,
+    "seq": 6,
+    "seed_w": 3141,
+    "seed_x": 2718
+  }
+]
