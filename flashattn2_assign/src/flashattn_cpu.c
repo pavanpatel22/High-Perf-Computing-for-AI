@@ -132,3 +132,27 @@ void flashattn2_forward_cpu_f32(
     free(Otilde);
     free(s_local);
 }
+
+#include <stdio.h>
+
+int main() {
+    int B = 1, H = 1, N = 4, D = 4;
+    int Br = 2, Bc = 2;
+    bool causal = false;
+
+    float Q[16] = {1};
+    float K[16] = {1};
+    float V[16] = {1};
+    float O[16] = {0};
+    float L[4]  = {0};
+
+    flashattn2_forward_cpu_f32(Q, K, V, O, L, B, H, N, D, Br, Bc, causal);
+
+    printf("Output:\n");
+    for (int i = 0; i < 16; i++) {
+        printf("%f ", O[i]);
+    }
+
+    printf("\nDone.\n");
+    return 0;
+}

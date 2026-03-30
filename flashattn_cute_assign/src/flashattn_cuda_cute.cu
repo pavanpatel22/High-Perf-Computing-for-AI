@@ -186,7 +186,7 @@ extern "C" void flashattn_forward_cute(
   CUDA_CHECK(cudaGetDeviceProperties(&prop, 0));
   if (shmem > (size_t)prop.sharedMemPerBlockOptin) {
     fprintf(stderr,
-            "Requested dynamic shared memory %zu bytes exceeds device opt-in limit %d bytes\n",
+            "Requested dynamic shared memory %zu bytes exceeds device opt-in limit %zu bytes\n",
             shmem, prop.sharedMemPerBlockOptin);
     std::exit(1);
   }

@@ -45,10 +45,6 @@ def build_and_run(N=128, D=64, Br=64, Bc=64, dtype="f16", causal=False):
     ls -la src
 
     echo "=== Build CuTe FlashAttention ==="
-    # NOTE: main_cute.cu should include <cstring> for strcmp on Linux.
-    # If you haven't added it, this compile can fail. Best fix is to add:
-    #   #include <cstring>
-    # at top of main_cute.cu.
     nvcc -O2 -std=c++17 \
       -Isrc -I"{cutlass_inc}" \
       src/main_cute.cu src/flashattn_cuda_cute.cu \
@@ -66,8 +62,10 @@ def build_and_run(N=128, D=64, Br=64, Bc=64, dtype="f16", causal=False):
     ./flashattn_cute --N {N} --D {D} --Br {Br} --Bc {Bc} --dtype {dtype} {causal_flag}
     """
 
+    # Build
     subprocess.check_call(["bash", "-lc", build_cmd])
 
+    # Run
     rc = subprocess.call(["bash", "-lc", run_cmd])
     print(f"Program exit code: {rc}")
     if rc != 0:
@@ -76,6 +74,7 @@ def build_and_run(N=128, D=64, Br=64, Bc=64, dtype="f16", causal=False):
 
 @app.local_entrypoint()
 def main():
+    # Keep Br=64 for all runs (safe)
     build_and_run.remote(N=128, D=64, Br=64, Bc=64, dtype="f16", causal=False)
-    build_and_run.remote(N=512, D=64, Br=128, Bc=64, dtype="f16", causal=False)
-    build_and_run.remote(N=256, D=64, Br=64,  Bc=64, dtype="f16", causal=True)
+    build_and_run.remote(N=512, D=64, Br=64, Bc=64, dtype="f16", causal=False)
+    build_and_run.remote(N=256, D=64, Br=64, Bc=64, dtype="f16", causal=True)
